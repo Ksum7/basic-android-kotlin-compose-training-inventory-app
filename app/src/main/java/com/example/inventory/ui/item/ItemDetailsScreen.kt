@@ -16,6 +16,8 @@
 
 package com.example.inventory.ui.item
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -32,6 +34,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -83,6 +86,25 @@ fun ItemDetailsScreen(
 ) {
     val uiState = viewModel.uiState.collectAsState()
     val coroutineScope = rememberCoroutineScope()
+    val shareLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult()
+    ) { /* No action needed on return */ }
+
+    val shareText = with(uiState.value.itemDetails) {
+        """
+        *$name*
+        
+        Price: $price
+        Quantity: $quantity
+        
+        Supplier: $supplierName
+        Email: $supplierEmail
+        Phone: $supplierPhone
+        
+        ID: $id
+        """.trimIndent()
+    }
+
     Scaffold(
         topBar = {
             InventoryTopAppBar(
@@ -122,6 +144,17 @@ fun ItemDetailsScreen(
                     navigateBack()
                 }
             },
+            onShare = {
+                val sendIntent = android.content.Intent().apply {
+                    action = android.content.Intent.ACTION_SEND
+                    putExtra(android.content.Intent.EXTRA_TEXT, shareText)
+                    type = "text/plain"
+                }
+                val shareIntent = android.content.Intent.createChooser(sendIntent,
+                    R.string.share_item_title.toString()
+                )
+                shareLauncher.launch(shareIntent)
+            },
             modifier = Modifier
                 .padding(
                     start = innerPadding.calculateStartPadding(LocalLayoutDirection.current),
@@ -138,6 +171,7 @@ private fun ItemDetailsBody(
     itemDetailsUiState: ItemDetailsUiState,
     onSellItem: () -> Unit,
     onDelete: () -> Unit,
+    onShare: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -155,6 +189,18 @@ private fun ItemDetailsBody(
             enabled = !itemDetailsUiState.outOfStock
         ) {
             Text(stringResource(R.string.sell))
+        }
+        Button(
+            onClick = onShare,
+            modifier = Modifier.fillMaxWidth(),
+            shape = MaterialTheme.shapes.small,
+        ) {
+            Icon(
+                imageVector = Icons.Default.Share,
+                contentDescription = null,
+                modifier = Modifier.padding(end = dimensionResource(R.dimen.padding_small))
+            )
+            Text(stringResource(R.string.share))
         }
         OutlinedButton(
             onClick = { deleteConfirmationRequired = true },
@@ -223,6 +269,21 @@ fun ItemDetails(
                     )
                 )
             )
+            ItemDetailsRow(
+                labelResID = R.string.supplier_name,
+                itemDetail = item.supplierName,
+                modifier = Modifier.padding(horizontal = dimensionResource(id = R.dimen.padding_medium))
+            )
+            ItemDetailsRow(
+                labelResID = R.string.supplier_email,
+                itemDetail = item.supplierEmail,
+                modifier = Modifier.padding(horizontal = dimensionResource(id = R.dimen.padding_medium))
+            )
+            ItemDetailsRow(
+                labelResID = R.string.supplier_phone,
+                itemDetail = item.supplierPhone,
+                modifier = Modifier.padding(horizontal = dimensionResource(id = R.dimen.padding_medium))
+            )
         }
 
     }
@@ -264,7 +325,8 @@ private fun DeleteConfirmationDialog(
 fun ItemDetailsScreenPreview() {
     InventoryTheme {
         ItemDetailsBody(ItemDetailsUiState(
-            outOfStock = true, itemDetails = ItemDetails(1, "Pen", "$100", "10")
-        ), onSellItem = {}, onDelete = {})
+            outOfStock = true, itemDetails = ItemDetails(1, "Pen", "$100", "10",
+                "Supplier", "email@example.com", "+1234567")
+        ), onSellItem = {}, onDelete = {}, onShare = {})
     }
 }

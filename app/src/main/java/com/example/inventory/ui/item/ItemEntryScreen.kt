@@ -49,6 +49,7 @@ import com.example.inventory.ui.theme.InventoryTheme
 import kotlinx.coroutines.launch
 import java.util.Currency
 import java.util.Locale
+import android.util.Patterns
 
 object ItemEntryDestination : NavigationDestination {
     override val route = "item_entry"
@@ -77,10 +78,6 @@ fun ItemEntryScreen(
             itemUiState = viewModel.itemUiState,
             onItemValueChange = viewModel::updateUiState,
             onSaveClick = {
-                // Note: If the user rotates the screen very fast, the operation may get cancelled
-                // and the item may not be saved in the Database. This is because when config
-                // change occurs, the Activity will be recreated and the rememberCoroutineScope will
-                // be cancelled - since the scope is bound to composition.
                 coroutineScope.launch {
                     viewModel.saveItem()
                     navigateBack()
@@ -147,7 +144,9 @@ fun ItemInputForm(
             ),
             modifier = Modifier.fillMaxWidth(),
             enabled = enabled,
-            singleLine = true
+            singleLine = true,
+            isError = itemDetails.name.isBlank(),
+            supportingText = { if (itemDetails.name.isBlank()) Text("This field is required") }
         )
         OutlinedTextField(
             value = itemDetails.price,
@@ -162,7 +161,9 @@ fun ItemInputForm(
             leadingIcon = { Text(Currency.getInstance(Locale.getDefault()).symbol) },
             modifier = Modifier.fillMaxWidth(),
             enabled = enabled,
-            singleLine = true
+            singleLine = true,
+            isError = itemDetails.price.isBlank(),
+            supportingText = { if (itemDetails.price.isBlank()) Text("This field is required") }
         )
         OutlinedTextField(
             value = itemDetails.quantity,
@@ -176,7 +177,68 @@ fun ItemInputForm(
             ),
             modifier = Modifier.fillMaxWidth(),
             enabled = enabled,
-            singleLine = true
+            singleLine = true,
+            isError = itemDetails.quantity.isBlank(),
+            supportingText = { if (itemDetails.quantity.isBlank()) Text("This field is required") }
+        )
+        OutlinedTextField(
+            value = itemDetails.supplierName,
+            onValueChange = { onValueChange(itemDetails.copy(supplierName = it)) },
+            label = { Text("Supplier Name*") },
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedContainerColor = MaterialTheme.colorScheme.secondaryContainer,
+                unfocusedContainerColor = MaterialTheme.colorScheme.secondaryContainer,
+                disabledContainerColor = MaterialTheme.colorScheme.secondaryContainer,
+            ),
+            modifier = Modifier.fillMaxWidth(),
+            enabled = enabled,
+            singleLine = true,
+            isError = itemDetails.supplierName.isBlank(),
+            supportingText = { if (itemDetails.supplierName.isBlank()) Text("This field is required") }
+        )
+        OutlinedTextField(
+            value = itemDetails.supplierEmail,
+            onValueChange = { onValueChange(itemDetails.copy(supplierEmail = it)) },
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+            label = { Text("Supplier Email*") },
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedContainerColor = MaterialTheme.colorScheme.secondaryContainer,
+                unfocusedContainerColor = MaterialTheme.colorScheme.secondaryContainer,
+                disabledContainerColor = MaterialTheme.colorScheme.secondaryContainer,
+            ),
+            modifier = Modifier.fillMaxWidth(),
+            enabled = enabled,
+            singleLine = true,
+            isError = itemDetails.supplierEmail.isBlank() || !Patterns.EMAIL_ADDRESS.matcher(itemDetails.supplierEmail).matches(),
+            supportingText = {
+                when {
+                    itemDetails.supplierEmail.isBlank() -> Text("This field is required")
+                    !Patterns.EMAIL_ADDRESS.matcher(itemDetails.supplierEmail).matches() -> Text("Invalid email address")
+                    else -> null
+                }
+            }
+        )
+        OutlinedTextField(
+            value = itemDetails.supplierPhone,
+            onValueChange = { onValueChange(itemDetails.copy(supplierPhone = it)) },
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
+            label = { Text("Supplier Phone*") },
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedContainerColor = MaterialTheme.colorScheme.secondaryContainer,
+                unfocusedContainerColor = MaterialTheme.colorScheme.secondaryContainer,
+                disabledContainerColor = MaterialTheme.colorScheme.secondaryContainer,
+            ),
+            modifier = Modifier.fillMaxWidth(),
+            enabled = enabled,
+            singleLine = true,
+            isError = itemDetails.supplierPhone.isBlank() || !itemDetails.supplierPhone.matches(Regex("^[+]?[0-9]{7,}$")),
+            supportingText = {
+                when {
+                    itemDetails.supplierPhone.isBlank() -> Text("This field is required")
+                    !itemDetails.supplierPhone.matches(Regex("^[+]?[0-9]{7,}$")) -> Text("Invalid phone number (min 7 digits, may start with +)")
+                    else -> null
+                }
+            }
         )
         if (enabled) {
             Text(
@@ -191,10 +253,19 @@ fun ItemInputForm(
 @Composable
 private fun ItemEntryScreenPreview() {
     InventoryTheme {
-        ItemEntryBody(itemUiState = ItemUiState(
-            ItemDetails(
-                name = "Item name", price = "10.00", quantity = "5"
-            )
-        ), onItemValueChange = {}, onSaveClick = {})
+        ItemEntryBody(
+            itemUiState = ItemUiState(
+                ItemDetails(
+                    name = "Item name",
+                    price = "10.00",
+                    quantity = "5",
+                    supplierName = "Supplier",
+                    supplierEmail = "contact@supplier.com",
+                    supplierPhone = "+15551234567"
+                )
+            ),
+            onItemValueChange = {},
+            onSaveClick = {}
+        )
     }
 }
