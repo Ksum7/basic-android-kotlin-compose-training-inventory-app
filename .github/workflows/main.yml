@@ -25,5 +25,5 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
         
-      - name: Build project 
+      - name: Build project and run local and device tests
         run: ./gradlew :app:assembleDebug

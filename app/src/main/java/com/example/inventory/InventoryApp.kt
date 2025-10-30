@@ -45,6 +45,7 @@ fun InventoryApp(navController: NavHostController = rememberNavController()) {
 /**
  * App bar to display title and conditionally display the back navigation.
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun InventoryTopAppBar(
     title: String,

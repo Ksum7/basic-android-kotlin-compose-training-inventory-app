@@ -35,4 +35,9 @@
     <string name="sell">Sell</string>
     <string name="yes">Yes</string>
     <string name="required_fields">*required fields</string>
+    <string name="supplier_name">Supplier Name</string>
+    <string name="supplier_email">Supplier Email</string>
+    <string name="supplier_phone">Supplier Phone</string>
+    <string name="share">Share</string>
+    <string name="share_item_title">Share Item</string>
 </resources>

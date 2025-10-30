@@ -33,6 +33,7 @@ import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.dimensionResource
@@ -45,8 +46,10 @@ import com.example.inventory.R
 import com.example.inventory.ui.AppViewModelProvider
 import com.example.inventory.ui.navigation.NavigationDestination
 import com.example.inventory.ui.theme.InventoryTheme
+import kotlinx.coroutines.launch
 import java.util.Currency
 import java.util.Locale
+import android.util.Patterns
 
 object ItemEntryDestination : NavigationDestination {
     override val route = "item_entry"
@@ -61,6 +64,7 @@ fun ItemEntryScreen(
     canNavigateBack: Boolean = true,
     viewModel: ItemEntryViewModel = viewModel(factory = AppViewModelProvider.Factory)
 ) {
+    val coroutineScope = rememberCoroutineScope()
     Scaffold(
         topBar = {
             InventoryTopAppBar(
@@ -73,12 +77,17 @@ fun ItemEntryScreen(
         ItemEntryBody(
             itemUiState = viewModel.itemUiState,
             onItemValueChange = viewModel::updateUiState,
-            onSaveClick = { },
+            onSaveClick = {
+                coroutineScope.launch {
+                    viewModel.saveItem()
+                    navigateBack()
+                }
+            },
             modifier = Modifier
                 .padding(
                     start = innerPadding.calculateStartPadding(LocalLayoutDirection.current),
+                    top = innerPadding.calculateTopPadding(),
                     end = innerPadding.calculateEndPadding(LocalLayoutDirection.current),
-                    top = innerPadding.calculateTopPadding()
                 )
                 .verticalScroll(rememberScrollState())
                 .fillMaxWidth()
@@ -94,9 +103,9 @@ fun ItemEntryBody(
     modifier: Modifier = Modifier
 ) {
     Column(
-        verticalArrangement = Arrangement.spacedBy(dimensionResource(id = R.dimen.padding_large)),
-        modifier = modifier.padding(dimensionResource(id = R.dimen.padding_medium))
-        ) {
+        modifier = modifier.padding(dimensionResource(id = R.dimen.padding_medium)),
+        verticalArrangement = Arrangement.spacedBy(dimensionResource(id = R.dimen.padding_large))
+    ) {
         ItemInputForm(
             itemDetails = itemUiState.itemDetails,
             onValueChange = onItemValueChange,
@@ -135,7 +144,9 @@ fun ItemInputForm(
             ),
             modifier = Modifier.fillMaxWidth(),
             enabled = enabled,
-            singleLine = true
+            singleLine = true,
+            isError = itemDetails.name.isBlank(),
+            supportingText = { if (itemDetails.name.isBlank()) Text("This field is required") }
         )
         OutlinedTextField(
             value = itemDetails.price,
@@ -150,7 +161,9 @@ fun ItemInputForm(
             leadingIcon = { Text(Currency.getInstance(Locale.getDefault()).symbol) },
             modifier = Modifier.fillMaxWidth(),
             enabled = enabled,
-            singleLine = true
+            singleLine = true,
+            isError = itemDetails.price.isBlank(),
+            supportingText = { if (itemDetails.price.isBlank()) Text("This field is required") }
         )
         OutlinedTextField(
             value = itemDetails.quantity,
@@ -164,7 +177,68 @@ fun ItemInputForm(
             ),
             modifier = Modifier.fillMaxWidth(),
             enabled = enabled,
-            singleLine = true
+            singleLine = true,
+            isError = itemDetails.quantity.isBlank(),
+            supportingText = { if (itemDetails.quantity.isBlank()) Text("This field is required") }
+        )
+        OutlinedTextField(
+            value = itemDetails.supplierName,
+            onValueChange = { onValueChange(itemDetails.copy(supplierName = it)) },
+            label = { Text("Supplier Name*") },
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedContainerColor = MaterialTheme.colorScheme.secondaryContainer,
+                unfocusedContainerColor = MaterialTheme.colorScheme.secondaryContainer,
+                disabledContainerColor = MaterialTheme.colorScheme.secondaryContainer,
+            ),
+            modifier = Modifier.fillMaxWidth(),
+            enabled = enabled,
+            singleLine = true,
+            isError = itemDetails.supplierName.isBlank(),
+            supportingText = { if (itemDetails.supplierName.isBlank()) Text("This field is required") }
+        )
+        OutlinedTextField(
+            value = itemDetails.supplierEmail,
+            onValueChange = { onValueChange(itemDetails.copy(supplierEmail = it)) },
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+            label = { Text("Supplier Email*") },
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedContainerColor = MaterialTheme.colorScheme.secondaryContainer,
+                unfocusedContainerColor = MaterialTheme.colorScheme.secondaryContainer,
+                disabledContainerColor = MaterialTheme.colorScheme.secondaryContainer,
+            ),
+            modifier = Modifier.fillMaxWidth(),
+            enabled = enabled,
+            singleLine = true,
+            isError = itemDetails.supplierEmail.isBlank() || !Patterns.EMAIL_ADDRESS.matcher(itemDetails.supplierEmail).matches(),
+            supportingText = {
+                when {
+                    itemDetails.supplierEmail.isBlank() -> Text("This field is required")
+                    !Patterns.EMAIL_ADDRESS.matcher(itemDetails.supplierEmail).matches() -> Text("Invalid email address")
+                    else -> null
+                }
+            }
+        )
+        OutlinedTextField(
+            value = itemDetails.supplierPhone,
+            onValueChange = { onValueChange(itemDetails.copy(supplierPhone = it)) },
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
+            label = { Text("Supplier Phone*") },
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedContainerColor = MaterialTheme.colorScheme.secondaryContainer,
+                unfocusedContainerColor = MaterialTheme.colorScheme.secondaryContainer,
+                disabledContainerColor = MaterialTheme.colorScheme.secondaryContainer,
+            ),
+            modifier = Modifier.fillMaxWidth(),
+            enabled = enabled,
+            singleLine = true,
+            isError = itemDetails.supplierPhone.isBlank() || !itemDetails.supplierPhone.matches(Regex("^[+]?[0-9]{7,}$")),
+            supportingText = {
+                when {
+                    itemDetails.supplierPhone.isBlank() -> Text("This field is required")
+                    !itemDetails.supplierPhone.matches(Regex("^[+]?[0-9]{7,}$")) -> Text("Invalid phone number (min 7 digits, may start with +)")
+                    else -> null
+                }
+            }
         )
         if (enabled) {
             Text(
@@ -179,10 +253,19 @@ fun ItemInputForm(
 @Composable
 private fun ItemEntryScreenPreview() {
     InventoryTheme {
-        ItemEntryBody(itemUiState = ItemUiState(
-            ItemDetails(
-                name = "Item name", price = "10.00", quantity = "5"
-            )
-        ), onItemValueChange = {}, onSaveClick = {})
+        ItemEntryBody(
+            itemUiState = ItemUiState(
+                ItemDetails(
+                    name = "Item name",
+                    price = "10.00",
+                    quantity = "5",
+                    supplierName = "Supplier",
+                    supplierEmail = "contact@supplier.com",
+                    supplierPhone = "+15551234567"
+                )
+            ),
+            onItemValueChange = {},
+            onSaveClick = {}
+        )
     }
 }

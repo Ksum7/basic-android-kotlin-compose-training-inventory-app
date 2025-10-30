@@ -16,19 +16,25 @@
 
 package com.example.inventory.ui.item
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.calculateEndPadding
 import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -42,8 +48,10 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -52,11 +60,14 @@ import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.inventory.InventoryTopAppBar
 import com.example.inventory.R
 import com.example.inventory.data.Item
+import com.example.inventory.ui.AppViewModelProvider
 import com.example.inventory.ui.navigation.NavigationDestination
 import com.example.inventory.ui.theme.InventoryTheme
+import kotlinx.coroutines.launch
 
 object ItemDetailsDestination : NavigationDestination {
     override val route = "item_details"
@@ -70,8 +81,30 @@ object ItemDetailsDestination : NavigationDestination {
 fun ItemDetailsScreen(
     navigateToEditItem: (Int) -> Unit,
     navigateBack: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    viewModel: ItemDetailsViewModel = viewModel(factory = AppViewModelProvider.Factory)
 ) {
+    val uiState = viewModel.uiState.collectAsState()
+    val coroutineScope = rememberCoroutineScope()
+    val shareLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult()
+    ) { /* No action needed on return */ }
+
+    val shareText = with(uiState.value.itemDetails) {
+        """
+        *$name*
+        
+        Price: $price
+        Quantity: $quantity
+        
+        Supplier: $supplierName
+        Email: $supplierEmail
+        Phone: $supplierPhone
+        
+        ID: $id
+        """.trimIndent()
+    }
+
     Scaffold(
         topBar = {
             InventoryTopAppBar(
@@ -79,29 +112,54 @@ fun ItemDetailsScreen(
                 canNavigateBack = true,
                 navigateUp = navigateBack
             )
-        }, floatingActionButton = {
+        },
+        floatingActionButton = {
             FloatingActionButton(
-                onClick = { navigateToEditItem(0) },
+                onClick = { navigateToEditItem(uiState.value.itemDetails.id) },
                 shape = MaterialTheme.shapes.medium,
-                modifier = Modifier.padding(dimensionResource(id = R.dimen.padding_large))
-
+                modifier = Modifier
+                    .padding(
+                        end = WindowInsets.safeDrawing.asPaddingValues()
+                            .calculateEndPadding(LocalLayoutDirection.current)
+                    )
             ) {
                 Icon(
                     imageVector = Icons.Default.Edit,
                     contentDescription = stringResource(R.string.edit_item_title),
                 )
             }
-        }, modifier = modifier
+        },
+        modifier = modifier,
     ) { innerPadding ->
         ItemDetailsBody(
-            itemDetailsUiState = ItemDetailsUiState(),
-            onSellItem = { },
-            onDelete = { },
+            itemDetailsUiState = uiState.value,
+            onSellItem = { viewModel.reduceQuantityByOne() },
+            onDelete = {
+                // Note: If the user rotates the screen very fast, the operation may get cancelled
+                // and the item may not be deleted from the Database. This is because when config
+                // change occurs, the Activity will be recreated and the rememberCoroutineScope will
+                // be cancelled - since the scope is bound to composition.
+                coroutineScope.launch {
+                    viewModel.deleteItem()
+                    navigateBack()
+                }
+            },
+            onShare = {
+                val sendIntent = android.content.Intent().apply {
+                    action = android.content.Intent.ACTION_SEND
+                    putExtra(android.content.Intent.EXTRA_TEXT, shareText)
+                    type = "text/plain"
+                }
+                val shareIntent = android.content.Intent.createChooser(sendIntent,
+                    R.string.share_item_title.toString()
+                )
+                shareLauncher.launch(shareIntent)
+            },
             modifier = Modifier
                 .padding(
                     start = innerPadding.calculateStartPadding(LocalLayoutDirection.current),
+                    top = innerPadding.calculateTopPadding(),
                     end = innerPadding.calculateEndPadding(LocalLayoutDirection.current),
-                    top = innerPadding.calculateTopPadding()
                 )
                 .verticalScroll(rememberScrollState())
         )
@@ -113,6 +171,7 @@ private fun ItemDetailsBody(
     itemDetailsUiState: ItemDetailsUiState,
     onSellItem: () -> Unit,
     onDelete: () -> Unit,
+    onShare: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -120,18 +179,28 @@ private fun ItemDetailsBody(
         verticalArrangement = Arrangement.spacedBy(dimensionResource(id = R.dimen.padding_medium))
     ) {
         var deleteConfirmationRequired by rememberSaveable { mutableStateOf(false) }
-
         ItemDetails(
-            item = itemDetailsUiState.itemDetails.toItem(),
-            modifier = Modifier.fillMaxWidth()
+            item = itemDetailsUiState.itemDetails.toItem(), modifier = Modifier.fillMaxWidth()
         )
         Button(
             onClick = onSellItem,
             modifier = Modifier.fillMaxWidth(),
             shape = MaterialTheme.shapes.small,
-            enabled = true
+            enabled = !itemDetailsUiState.outOfStock
         ) {
             Text(stringResource(R.string.sell))
+        }
+        Button(
+            onClick = onShare,
+            modifier = Modifier.fillMaxWidth(),
+            shape = MaterialTheme.shapes.small,
+        ) {
+            Icon(
+                imageVector = Icons.Default.Share,
+                contentDescription = null,
+                modifier = Modifier.padding(end = dimensionResource(R.dimen.padding_small))
+            )
+            Text(stringResource(R.string.share))
         }
         OutlinedButton(
             onClick = { deleteConfirmationRequired = true },
@@ -153,13 +222,13 @@ private fun ItemDetailsBody(
     }
 }
 
+
 @Composable
 fun ItemDetails(
     item: Item, modifier: Modifier = Modifier
 ) {
     Card(
-        modifier = modifier,
-        colors = CardDefaults.cardColors(
+        modifier = modifier, colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.primaryContainer,
             contentColor = MaterialTheme.colorScheme.onPrimaryContainer
         )
@@ -168,32 +237,55 @@ fun ItemDetails(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(dimensionResource(id = R.dimen.padding_medium)),
-            verticalArrangement = Arrangement.spacedBy(
-                dimensionResource(id = R.dimen.padding_medium)
-            )
+            verticalArrangement = Arrangement.spacedBy(dimensionResource(id = R.dimen.padding_medium))
         ) {
             ItemDetailsRow(
                 labelResID = R.string.item,
                 itemDetail = item.name,
                 modifier = Modifier.padding(
-                    horizontal = dimensionResource(id = R.dimen.padding_medium)
+                    horizontal = dimensionResource(
+                        id = R.dimen
+                            .padding_medium
+                    )
                 )
             )
             ItemDetailsRow(
                 labelResID = R.string.quantity_in_stock,
                 itemDetail = item.quantity.toString(),
                 modifier = Modifier.padding(
-                    horizontal = dimensionResource(id = R.dimen.padding_medium)
+                    horizontal = dimensionResource(
+                        id = R.dimen
+                            .padding_medium
+                    )
                 )
             )
             ItemDetailsRow(
                 labelResID = R.string.price,
                 itemDetail = item.formatedPrice(),
                 modifier = Modifier.padding(
-                    horizontal = dimensionResource(id = R.dimen.padding_medium)
+                    horizontal = dimensionResource(
+                        id = R.dimen
+                            .padding_medium
+                    )
                 )
             )
+            ItemDetailsRow(
+                labelResID = R.string.supplier_name,
+                itemDetail = item.supplierName,
+                modifier = Modifier.padding(horizontal = dimensionResource(id = R.dimen.padding_medium))
+            )
+            ItemDetailsRow(
+                labelResID = R.string.supplier_email,
+                itemDetail = item.supplierEmail,
+                modifier = Modifier.padding(horizontal = dimensionResource(id = R.dimen.padding_medium))
+            )
+            ItemDetailsRow(
+                labelResID = R.string.supplier_phone,
+                itemDetail = item.supplierPhone,
+                modifier = Modifier.padding(horizontal = dimensionResource(id = R.dimen.padding_medium))
+            )
         }
+
     }
 }
 
@@ -202,7 +294,7 @@ private fun ItemDetailsRow(
     @StringRes labelResID: Int, itemDetail: String, modifier: Modifier = Modifier
 ) {
     Row(modifier = modifier) {
-        Text(stringResource(labelResID))
+        Text(text = stringResource(labelResID))
         Spacer(modifier = Modifier.weight(1f))
         Text(text = itemDetail, fontWeight = FontWeight.Bold)
     }
@@ -210,9 +302,7 @@ private fun ItemDetailsRow(
 
 @Composable
 private fun DeleteConfirmationDialog(
-    onDeleteConfirm: () -> Unit,
-    onDeleteCancel: () -> Unit,
-    modifier: Modifier = Modifier
+    onDeleteConfirm: () -> Unit, onDeleteCancel: () -> Unit, modifier: Modifier = Modifier
 ) {
     AlertDialog(onDismissRequest = { /* Do nothing */ },
         title = { Text(stringResource(R.string.attention)) },
@@ -220,12 +310,12 @@ private fun DeleteConfirmationDialog(
         modifier = modifier,
         dismissButton = {
             TextButton(onClick = onDeleteCancel) {
-                Text(stringResource(R.string.no))
+                Text(text = stringResource(R.string.no))
             }
         },
         confirmButton = {
             TextButton(onClick = onDeleteConfirm) {
-                Text(stringResource(R.string.yes))
+                Text(text = stringResource(R.string.yes))
             }
         })
 }
@@ -234,13 +324,9 @@ private fun DeleteConfirmationDialog(
 @Composable
 fun ItemDetailsScreenPreview() {
     InventoryTheme {
-        ItemDetailsBody(
-            ItemDetailsUiState(
-                outOfStock = true,
-                itemDetails = ItemDetails(1, "Pen", "$100", "10")
-            ),
-            onSellItem = {},
-            onDelete = {}
-        )
+        ItemDetailsBody(ItemDetailsUiState(
+            outOfStock = true, itemDetails = ItemDetails(1, "Pen", "$100", "10",
+                "Supplier", "email@example.com", "+1234567")
+        ), onSellItem = {}, onDelete = {}, onShare = {})
     }
 }

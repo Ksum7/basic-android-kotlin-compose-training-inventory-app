@@ -24,6 +24,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.stringResource
@@ -34,6 +35,7 @@ import com.example.inventory.R
 import com.example.inventory.ui.AppViewModelProvider
 import com.example.inventory.ui.navigation.NavigationDestination
 import com.example.inventory.ui.theme.InventoryTheme
+import kotlinx.coroutines.launch
 
 object ItemEditDestination : NavigationDestination {
     override val route = "item_edit"
@@ -50,6 +52,7 @@ fun ItemEditScreen(
     modifier: Modifier = Modifier,
     viewModel: ItemEditViewModel = viewModel(factory = AppViewModelProvider.Factory)
 ) {
+    val coroutineScope = rememberCoroutineScope()
     Scaffold(
         topBar = {
             InventoryTopAppBar(
@@ -62,13 +65,22 @@ fun ItemEditScreen(
     ) { innerPadding ->
         ItemEntryBody(
             itemUiState = viewModel.itemUiState,
-            onItemValueChange = { },
-            onSaveClick = { },
+            onItemValueChange = viewModel::updateUiState,
+            onSaveClick = {
+                // Note: If the user rotates the screen very fast, the operation may get cancelled
+                // and the item may not be updated in the Database. This is because when config
+                // change occurs, the Activity will be recreated and the rememberCoroutineScope will
+                // be cancelled - since the scope is bound to composition.
+                coroutineScope.launch {
+                    viewModel.updateItem()
+                    navigateBack()
+                }
+            },
             modifier = Modifier
                 .padding(
                     start = innerPadding.calculateStartPadding(LocalLayoutDirection.current),
+                    top = innerPadding.calculateTopPadding(),
                     end = innerPadding.calculateEndPadding(LocalLayoutDirection.current),
-                    top = innerPadding.calculateTopPadding()
                 )
                 .verticalScroll(rememberScrollState())
         )

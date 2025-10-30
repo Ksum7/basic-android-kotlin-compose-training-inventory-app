@@ -16,6 +16,7 @@
 
 package com.example.inventory.ui.item
 
+import android.util.Patterns
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -40,7 +41,10 @@ class ItemEditViewModel(
 
     private fun validateInput(uiState: ItemDetails = itemUiState.itemDetails): Boolean {
         return with(uiState) {
-            name.isNotBlank() && price.isNotBlank() && quantity.isNotBlank()
+            name.isNotBlank() && price.isNotBlank() && quantity.isNotBlank() &&
+                    supplierName.isNotBlank() &&
+                    supplierEmail.isNotBlank() && Patterns.EMAIL_ADDRESS.matcher(supplierEmail).matches() &&
+                    supplierPhone.isNotBlank() && supplierPhone.matches(Regex("^[+]?[0-9]{7,}$"))
         }
     }
 }
