@@ -17,24 +17,39 @@
 package com.example.inventory.ui.item
 
 import android.util.Patterns
+import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import com.example.inventory.data.Item
 import com.example.inventory.data.ItemsRepository
+import com.example.inventory.data.SettingsRepository
 import java.text.NumberFormat
 
 /**
  * ViewModel to validate and insert items in the Room database.
  */
-class ItemEntryViewModel(private val itemsRepository: ItemsRepository) : ViewModel() {
+class ItemEntryViewModel(
+    private val itemsRepository: ItemsRepository,
+    private val settingsRepository: SettingsRepository
+) : ViewModel() {
 
     /**
      * Holds current item ui state
      */
     var itemUiState by mutableStateOf(ItemUiState())
         private set
+
+    init {
+        val settings = settingsRepository.getSettings()
+        val initialDetails = if (settings.useDefaultQuantity) {
+            ItemDetails(quantity = settings.defaultQuantity.toString())
+        } else {
+            ItemDetails()
+        }
+        itemUiState = ItemUiState(itemDetails = initialDetails, isEntryValid = validateInput(initialDetails))
+    }
 
     /**
      * Updates the [itemUiState] with the value provided in the argument. This method also triggers

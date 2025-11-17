@@ -48,6 +48,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.State
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -60,6 +61,7 @@ import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.inventory.InventoryTopAppBar
 import com.example.inventory.R
@@ -88,7 +90,7 @@ fun ItemDetailsScreen(
     val coroutineScope = rememberCoroutineScope()
     val shareLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()
-    ) { /* No action needed on return */ }
+    ) { }
 
     val shareText = with(uiState.value.itemDetails) {
         """
@@ -179,8 +181,7 @@ private fun ItemDetailsBody(
         verticalArrangement = Arrangement.spacedBy(dimensionResource(id = R.dimen.padding_medium))
     ) {
         var deleteConfirmationRequired by rememberSaveable { mutableStateOf(false) }
-        ItemDetails(
-            item = itemDetailsUiState.itemDetails.toItem(), modifier = Modifier.fillMaxWidth()
+        ItemDetails(itemDetailsUiState = itemDetailsUiState, item = itemDetailsUiState.itemDetails.toItem(), modifier = Modifier.fillMaxWidth()
         )
         Button(
             onClick = onSellItem,
@@ -194,6 +195,7 @@ private fun ItemDetailsBody(
             onClick = onShare,
             modifier = Modifier.fillMaxWidth(),
             shape = MaterialTheme.shapes.small,
+            enabled =  itemDetailsUiState.allowShare
         ) {
             Icon(
                 imageVector = Icons.Default.Share,
@@ -224,7 +226,7 @@ private fun ItemDetailsBody(
 
 
 @Composable
-fun ItemDetails(
+fun ItemDetails(itemDetailsUiState: ItemDetailsUiState,
     item: Item, modifier: Modifier = Modifier
 ) {
     Card(
@@ -271,17 +273,17 @@ fun ItemDetails(
             )
             ItemDetailsRow(
                 labelResID = R.string.supplier_name,
-                itemDetail = item.supplierName,
+                itemDetail = if (itemDetailsUiState.hideSensitive) "****" else item.supplierName,
                 modifier = Modifier.padding(horizontal = dimensionResource(id = R.dimen.padding_medium))
             )
             ItemDetailsRow(
                 labelResID = R.string.supplier_email,
-                itemDetail = item.supplierEmail,
+                itemDetail = if (itemDetailsUiState.hideSensitive) "****" else item.supplierEmail,
                 modifier = Modifier.padding(horizontal = dimensionResource(id = R.dimen.padding_medium))
             )
             ItemDetailsRow(
                 labelResID = R.string.supplier_phone,
-                itemDetail = item.supplierPhone,
+                itemDetail = if (itemDetailsUiState.hideSensitive) "****" else item.supplierPhone,
                 modifier = Modifier.padding(horizontal = dimensionResource(id = R.dimen.padding_medium))
             )
         }
@@ -324,9 +326,10 @@ private fun DeleteConfirmationDialog(
 @Composable
 fun ItemDetailsScreenPreview() {
     InventoryTheme {
-        ItemDetailsBody(ItemDetailsUiState(
-            outOfStock = true, itemDetails = ItemDetails(1, "Pen", "$100", "10",
-                "Supplier", "email@example.com", "+1234567")
-        ), onSellItem = {}, onDelete = {}, onShare = {})
+        ItemDetailsScreen(
+            navigateToEditItem = { /*Do nothing*/ },
+            navigateBack = { /*Do nothing*/ },
+            viewModel = viewModel(factory = AppViewModelProvider.Factory) // Assume mock
+        )
     }
 }

@@ -27,35 +27,41 @@ import com.example.inventory.ui.home.HomeViewModel
 import com.example.inventory.ui.item.ItemDetailsViewModel
 import com.example.inventory.ui.item.ItemEditViewModel
 import com.example.inventory.ui.item.ItemEntryViewModel
+import com.example.inventory.ui.settings.SettingsViewModel
 
 /**
  * Provides Factory to create instance of ViewModel for the entire Inventory app
  */
 object AppViewModelProvider {
     val Factory = viewModelFactory {
-        // Initializer for ItemEditViewModel
         initializer {
             ItemEditViewModel(
                 this.createSavedStateHandle(),
                 inventoryApplication().container.itemsRepository
             )
         }
-        // Initializer for ItemEntryViewModel
-        initializer {
-            ItemEntryViewModel(inventoryApplication().container.itemsRepository)
-        }
 
-        // Initializer for ItemDetailsViewModel
         initializer {
-            ItemDetailsViewModel(
-                this.createSavedStateHandle(),
-                inventoryApplication().container.itemsRepository
+            ItemEntryViewModel(
+                inventoryApplication().container.itemsRepository,
+                inventoryApplication().container.settingsRepository
             )
         }
 
-        // Initializer for HomeViewModel
+        initializer {
+            ItemDetailsViewModel(
+                this.createSavedStateHandle(),
+                inventoryApplication().container.itemsRepository,
+                inventoryApplication().container.settingsRepository
+            )
+        }
+
         initializer {
             HomeViewModel(inventoryApplication().container.itemsRepository)
+        }
+
+        initializer {
+            SettingsViewModel(inventoryApplication().container.settingsRepository)
         }
     }
 }

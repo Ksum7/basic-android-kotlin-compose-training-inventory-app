@@ -40,4 +40,20 @@
     <string name="supplier_phone">Supplier Phone</string>
     <string name="share">Share</string>
     <string name="share_item_title">Share Item</string>
+    <string name="settings_title">Settings</string>
+    <string name="hide_sensitive_data">Hide Sensitive Data</string>
+    <string name="hide_sensitive_summary">When enabled, supplier information in item details will be masked or blurred for privacy.</string>
+    <string name="allow_share">Allow Sharing</string>
+    <string name="allow_share_summary">When enabled, the share button in item details will be active. Disable to prevent data export.</string>
+    <string name="use_default_quantity">Use Default Quantity</string>
+    <string name="use_default_quantity_summary">When enabled, the quantity field in new item entry will be pre-filled with the default value.</string>
+    <string name="default_quantity">Default Quantity</string>
+    <string name="quantity">Quantity</string>
+    <string name="settings">Settings</string>
+    <string name="add_item">Add Item</string>
+    <string name="this_field_required">This field is required</string>
+    <string name="invalid_phone">Invalid phone number (min 7 digits, may start with +)</string>
+    <string name="invalid_email">Invalid email address</string>
+    <string name="sharing_disabled">SharingDisabled</string>
+    <string name="out_of_stock">Out of stock</string>
 </resources>

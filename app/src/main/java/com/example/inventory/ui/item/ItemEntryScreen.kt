@@ -146,7 +146,7 @@ fun ItemInputForm(
             enabled = enabled,
             singleLine = true,
             isError = itemDetails.name.isBlank(),
-            supportingText = { if (itemDetails.name.isBlank()) Text("This field is required") }
+            supportingText = { if (itemDetails.name.isBlank()) Text(stringResource(R.string.this_field_required)) }
         )
         OutlinedTextField(
             value = itemDetails.price,
@@ -163,7 +163,7 @@ fun ItemInputForm(
             enabled = enabled,
             singleLine = true,
             isError = itemDetails.price.isBlank(),
-            supportingText = { if (itemDetails.price.isBlank()) Text("This field is required") }
+            supportingText = { if (itemDetails.price.isBlank()) Text(stringResource(R.string.this_field_required)) }
         )
         OutlinedTextField(
             value = itemDetails.quantity,
@@ -179,7 +179,7 @@ fun ItemInputForm(
             enabled = enabled,
             singleLine = true,
             isError = itemDetails.quantity.isBlank(),
-            supportingText = { if (itemDetails.quantity.isBlank()) Text("This field is required") }
+            supportingText = { if (itemDetails.quantity.isBlank()) Text(stringResource(R.string.this_field_required)) }
         )
         OutlinedTextField(
             value = itemDetails.supplierName,
@@ -194,7 +194,7 @@ fun ItemInputForm(
             enabled = enabled,
             singleLine = true,
             isError = itemDetails.supplierName.isBlank(),
-            supportingText = { if (itemDetails.supplierName.isBlank()) Text("This field is required") }
+            supportingText = { if (itemDetails.supplierName.isBlank()) Text(stringResource(R.string.this_field_required)) }
         )
         OutlinedTextField(
             value = itemDetails.supplierEmail,
@@ -212,7 +212,7 @@ fun ItemInputForm(
             isError = itemDetails.supplierEmail.isBlank() || !Patterns.EMAIL_ADDRESS.matcher(itemDetails.supplierEmail).matches(),
             supportingText = {
                 when {
-                    itemDetails.supplierEmail.isBlank() -> Text("This field is required")
+                    itemDetails.supplierEmail.isBlank() -> Text(stringResource(R.string.this_field_required))
                     !Patterns.EMAIL_ADDRESS.matcher(itemDetails.supplierEmail).matches() -> Text("Invalid email address")
                     else -> null
                 }
@@ -234,7 +234,7 @@ fun ItemInputForm(
             isError = itemDetails.supplierPhone.isBlank() || !itemDetails.supplierPhone.matches(Regex("^[+]?[0-9]{7,}$")),
             supportingText = {
                 when {
-                    itemDetails.supplierPhone.isBlank() -> Text("This field is required")
+                    itemDetails.supplierPhone.isBlank() -> Text(stringResource(R.string.this_field_required))
                     !itemDetails.supplierPhone.matches(Regex("^[+]?[0-9]{7,}$")) -> Text("Invalid phone number (min 7 digits, may start with +)")
                     else -> null
                 }
