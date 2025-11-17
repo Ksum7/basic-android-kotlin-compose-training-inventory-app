@@ -56,4 +56,7 @@
     <string name="invalid_email">Invalid email address</string>
     <string name="sharing_disabled">SharingDisabled</string>
     <string name="out_of_stock">Out of stock</string>
+    <string name="save_to_file">Save to file</string>
+    <string name="source">Source</string>
+    <string name="load_from_file">Load from file</string>
 </resources>

@@ -58,7 +58,8 @@ class ItemEditViewModel(
      */
     suspend fun updateItem() {
         if (validateInput(itemUiState.itemDetails)) {
-            itemsRepository.updateItem(itemUiState.itemDetails.toItem())
+            val updatedItem = itemUiState.itemDetails.toItem().copy(source = itemUiState.itemDetails.source)
+            itemsRepository.updateItem(updatedItem)
         }
     }
 

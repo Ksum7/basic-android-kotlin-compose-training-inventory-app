@@ -17,6 +17,7 @@
 package com.example.inventory.ui
 
 import android.app.Application
+import android.content.Context
 import androidx.lifecycle.ViewModelProvider.AndroidViewModelFactory
 import androidx.lifecycle.createSavedStateHandle
 import androidx.lifecycle.viewmodel.CreationExtras
@@ -44,7 +45,8 @@ object AppViewModelProvider {
         initializer {
             ItemEntryViewModel(
                 inventoryApplication().container.itemsRepository,
-                inventoryApplication().container.settingsRepository
+                inventoryApplication().container.settingsRepository,
+                inventoryApplication() // Pass application as Context
             )
         }
 

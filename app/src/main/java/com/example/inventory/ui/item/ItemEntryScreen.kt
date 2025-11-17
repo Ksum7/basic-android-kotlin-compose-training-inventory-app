@@ -16,6 +16,7 @@
 
 package com.example.inventory.ui.item
 
+import android.net.Uri
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.calculateEndPadding
@@ -50,6 +51,12 @@ import kotlinx.coroutines.launch
 import java.util.Currency
 import java.util.Locale
 import android.util.Patterns
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 
 object ItemEntryDestination : NavigationDestination {
     override val route = "item_entry"
@@ -65,12 +72,32 @@ fun ItemEntryScreen(
     viewModel: ItemEntryViewModel = viewModel(factory = AppViewModelProvider.Factory)
 ) {
     val coroutineScope = rememberCoroutineScope()
+
+    val loadFromFileLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument()
+    ) { uri: Uri? ->
+        uri?.let {
+            coroutineScope.launch {
+                viewModel.loadFromEncryptedFile(it)
+                navigateBack()
+            }
+        }
+    }
+
     Scaffold(
         topBar = {
             InventoryTopAppBar(
                 title = stringResource(ItemEntryDestination.titleRes),
                 canNavigateBack = canNavigateBack,
-                navigateUp = onNavigateUp
+                navigateUp = onNavigateUp,
+                actions = {
+                    IconButton(onClick = { loadFromFileLauncher.launch(arrayOf("application/json")) }) {
+                        Icon(
+                            imageVector = Icons.Default.Add,
+                            contentDescription = stringResource(R.string.load_from_file)
+                        )
+                    }
+                }
             )
         }
     ) { innerPadding ->

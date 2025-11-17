@@ -16,15 +16,21 @@
 
 package com.example.inventory.ui.item
 
-import android.util.Patterns
+import android.content.Context
+import android.net.Uri
+import android.util.Log
 import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
+import com.example.inventory.EncryptionUtil
 import com.example.inventory.data.Item
 import com.example.inventory.data.ItemsRepository
 import com.example.inventory.data.SettingsRepository
+import com.google.gson.Gson
+import java.io.InputStreamReader
+import java.nio.charset.StandardCharsets
 import java.text.NumberFormat
 
 /**
@@ -32,7 +38,8 @@ import java.text.NumberFormat
  */
 class ItemEntryViewModel(
     private val itemsRepository: ItemsRepository,
-    private val settingsRepository: SettingsRepository
+    private val settingsRepository: SettingsRepository,
+    private val context: Context
 ) : ViewModel() {
 
     /**
@@ -41,12 +48,15 @@ class ItemEntryViewModel(
     var itemUiState by mutableStateOf(ItemUiState())
         private set
 
+    private val gson = Gson()
+    private val encryptionUtil = EncryptionUtil(context)
+
     init {
         val settings = settingsRepository.getSettings()
         val initialDetails = if (settings.useDefaultQuantity) {
-            ItemDetails(quantity = settings.defaultQuantity.toString())
+            ItemDetails(quantity = settings.defaultQuantity.toString(), source = "manual")
         } else {
-            ItemDetails()
+            ItemDetails(source = "manual")
         }
         itemUiState = ItemUiState(itemDetails = initialDetails, isEntryValid = validateInput(initialDetails))
     }
@@ -65,7 +75,21 @@ class ItemEntryViewModel(
      */
     suspend fun saveItem() {
         if (validateInput()) {
-            itemsRepository.insertItem(itemUiState.itemDetails.toItem())
+            val item = itemUiState.itemDetails.toItem(source = "manual")
+            itemsRepository.insertItem(item)
+        }
+    }
+
+    suspend fun loadFromEncryptedFile(fileUri: Uri) {
+        try {
+            context.contentResolver.openInputStream(fileUri)?.use { inputStream ->
+                val encryptedString = inputStream.readBytes().toString(Charsets.UTF_8)
+                val decryptedJson = encryptionUtil.decrypt(encryptedString)
+                val item = gson.fromJson(decryptedJson, Item::class.java)?.copy(source = "file")
+                item?.let { itemsRepository.insertItem(it) }
+            }
+        } catch (e: Exception) {
+            Log.e("LoadItem", "Failed to load from encrypted file", e)
         }
     }
 
@@ -73,7 +97,7 @@ class ItemEntryViewModel(
         return with(uiState) {
             name.isNotBlank() && price.isNotBlank() && quantity.isNotBlank() &&
                     supplierName.isNotBlank() &&
-                    supplierEmail.isNotBlank() && Patterns.EMAIL_ADDRESS.matcher(supplierEmail).matches() &&
+                    supplierEmail.isNotBlank() && android.util.Patterns.EMAIL_ADDRESS.matcher(supplierEmail).matches() &&
                     supplierPhone.isNotBlank() && supplierPhone.matches(Regex("^[+]?[0-9]{7,}$"))
         }
     }
@@ -94,7 +118,8 @@ data class ItemDetails(
     val quantity: String = "",
     val supplierName: String = "",
     val supplierEmail: String = "",
-    val supplierPhone: String = ""
+    val supplierPhone: String = "",
+    val source: String = "manual"
 )
 
 /**
@@ -102,14 +127,15 @@ data class ItemDetails(
  * not a valid [Double], then the price will be set to 0.0. Similarly if the value of
  * [ItemUiState] is not a valid [Int], then the quantity will be set to 0
  */
-fun ItemDetails.toItem(): Item = Item(
+fun ItemDetails.toItem(source: String? = null): Item = Item(
     id = id,
     name = name,
     price = price.toDoubleOrNull() ?: 0.0,
     quantity = quantity.toIntOrNull() ?: 0,
     supplierName = supplierName,
     supplierEmail = supplierEmail,
-    supplierPhone = supplierPhone
+    supplierPhone = supplierPhone,
+    source = source ?: this.source
 )
 
 fun Item.formatedPrice(): String {
@@ -134,5 +160,6 @@ fun Item.toItemDetails(): ItemDetails = ItemDetails(
     quantity = quantity.toString(),
     supplierName = supplierName,
     supplierEmail = supplierEmail,
-    supplierPhone = supplierPhone
+    supplierPhone = supplierPhone,
+    source = source
 )

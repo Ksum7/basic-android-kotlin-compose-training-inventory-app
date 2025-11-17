@@ -17,13 +17,23 @@
 package com.example.inventory.data
 
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 
 class OfflineItemsRepository(private val itemDao: ItemDao) : ItemsRepository {
     override fun getAllItemsStream(): Flow<List<Item>> = itemDao.getAllItems()
 
     override fun getItemStream(id: Int): Flow<Item?> = itemDao.getItem(id)
 
-    override suspend fun insertItem(item: Item) = itemDao.insert(item)
+    override suspend fun insertItem(item: Item) {
+
+        val itemToInsert = if (item.id > 0 && itemDao.getItem(item.id).map { true }.first()) {
+            item.copy(id = 0)
+        } else {
+            item
+        }
+        itemDao.insert(itemToInsert)
+    }
 
     override suspend fun deleteItem(item: Item) = itemDao.delete(item)
 
