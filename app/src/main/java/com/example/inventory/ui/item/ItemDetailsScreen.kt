@@ -98,8 +98,7 @@ fun ItemDetailsScreen(
     val uiState = viewModel.uiState.collectAsState()
     val coroutineScope = rememberCoroutineScope()
     val context = LocalContext.current
-    val application = context.applicationContext as InventoryApplication
-    val encryptionUtil = EncryptionUtil(context)
+    val encryptionUtil = EncryptionUtil()
     val shareLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()
     ) { }

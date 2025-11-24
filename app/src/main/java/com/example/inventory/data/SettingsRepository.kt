@@ -17,7 +17,7 @@ class SettingsRepository(private val context: Context) {
 
     private val prefs: SharedPreferences = context.getSharedPreferences("secure_settings", Context.MODE_PRIVATE)
 
-    private val encryptionUtil = EncryptionUtil(context)
+    private val encryptionUtil = EncryptionUtil()
 
     private val encryptedHideSensitiveKey = "enc_hide_sensitive"
     private val encryptedAllowShareKey = "enc_allow_share"

@@ -67,6 +67,8 @@ android {
 dependencies {
     implementation("androidx.security:security-crypto:1.1.0")
     implementation("com.google.code.gson:gson:2.11.0")
+    implementation("net.zetetic:android-database-sqlcipher:4.5.4")
+    implementation("com.commonsware.cwac:saferoom.x:1.2.1")
 
     // Import the Compose BOM
     implementation(platform("androidx.compose:compose-bom:2024.11.00"))

@@ -49,7 +49,7 @@ class ItemEntryViewModel(
         private set
 
     private val gson = Gson()
-    private val encryptionUtil = EncryptionUtil(context)
+    private val encryptionUtil = EncryptionUtil()
 
     init {
         val settings = settingsRepository.getSettings()

@@ -1,6 +1,5 @@
 package com.example.inventory
 
-import android.content.Context
 import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyProperties
 import android.util.Base64
@@ -10,7 +9,7 @@ import javax.crypto.KeyGenerator
 import javax.crypto.SecretKey
 import javax.crypto.spec.GCMParameterSpec
 
-class EncryptionUtil(private val context: Context) {
+class EncryptionUtil() {
 
     private val KEY_ALIAS = "file_encryption_key"
     private val IV_SIZE = 12
@@ -55,6 +54,19 @@ class EncryptionUtil(private val context: Context) {
     private fun getSecretKey(): SecretKey {
         val keyStore = KeyStore.getInstance("AndroidKeyStore").apply { load(null) }
         return keyStore.getKey(KEY_ALIAS, null) as SecretKey
+    }
+
+    fun getDatabasePassphrase(): ByteArray {
+        val secretKey = getSecretKey()
+        return secretKey.encoded
+            ?.takeIf { it.isNotEmpty() }
+            ?: run {
+                val salt = KEY_ALIAS.toByteArray()
+                javax.crypto.SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256")
+                    .generateSecret(javax.crypto.spec.PBEKeySpec(
+                        KEY_ALIAS.toCharArray(), salt, 100000, 256
+                    )).encoded
+            }
     }
 
     fun encrypt(value: String): String {
