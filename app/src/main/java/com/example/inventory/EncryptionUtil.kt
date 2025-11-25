@@ -14,6 +14,10 @@ class EncryptionUtil() {
     private val KEY_ALIAS = "file_encryption_key"
     private val IV_SIZE = 12
     private val TAG_SIZE = 16
+    private val FIXED_IV = byteArrayOf(
+        0x00, 0x01, 0x02, 0x03, 0x04, 0x05,
+        0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b
+    )
 
     init {
         //deleteKeyIfExists()
@@ -62,11 +66,7 @@ class EncryptionUtil() {
             ?.takeIf { it.isNotEmpty() }
             ?: run {
                 val cipher = Cipher.getInstance("AES/GCM/NoPadding")
-                val iv = byteArrayOf(
-                    0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
-                    0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f
-                )
-                cipher.init(Cipher.ENCRYPT_MODE, secretKey, GCMParameterSpec(128, iv))
+                cipher.init(Cipher.ENCRYPT_MODE, secretKey, GCMParameterSpec(TAG_SIZE * 8, FIXED_IV))
                 cipher.doFinal(KEY_ALIAS.toByteArray(Charsets.UTF_8))
             }
     }
