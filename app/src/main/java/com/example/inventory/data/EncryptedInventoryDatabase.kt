@@ -32,7 +32,6 @@ abstract class EncryptedInventoryDatabase : RoomDatabase() {
                         "item_database",
                         passphrase
                     )
-//                    context.deleteDatabase("item_database")
                 }
                 val factory =
                     SafeHelperFactory(passphrase)
@@ -45,7 +44,6 @@ abstract class EncryptedInventoryDatabase : RoomDatabase() {
                     .fallbackToDestructiveMigration()
                     .build()
 
-//                passphrase.fill(0)
                 INSTANCE = instance
                 instance
             }
