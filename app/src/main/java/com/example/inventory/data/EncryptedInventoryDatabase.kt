@@ -8,7 +8,7 @@ import com.commonsware.cwac.saferoom.SQLCipherUtils
 import com.commonsware.cwac.saferoom.SafeHelperFactory
 import com.example.inventory.EncryptionUtil
 
-@Database(entities = [Item::class], version = 2, exportSchema = false)
+@Database(entities = [Item::class], version = 1, exportSchema = false)
 abstract class EncryptedInventoryDatabase : RoomDatabase() {
     abstract fun itemDao(): ItemDao
 
@@ -25,7 +25,6 @@ abstract class EncryptedInventoryDatabase : RoomDatabase() {
                     "item_database"
                 )
 
-
                 if (state == SQLCipherUtils.State.UNENCRYPTED) {
                     SQLCipherUtils.encrypt(
                         context,
@@ -41,7 +40,6 @@ abstract class EncryptedInventoryDatabase : RoomDatabase() {
                     "item_database"
                 )
                     .openHelperFactory(factory)
-                    .fallbackToDestructiveMigration()
                     .build()
 
                 INSTANCE = instance
