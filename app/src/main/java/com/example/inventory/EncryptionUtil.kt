@@ -61,11 +61,10 @@ class EncryptionUtil() {
         return secretKey.encoded
             ?.takeIf { it.isNotEmpty() }
             ?: run {
-                val salt = KEY_ALIAS.toByteArray()
-                javax.crypto.SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256")
-                    .generateSecret(javax.crypto.spec.PBEKeySpec(
-                        KEY_ALIAS.toCharArray(), salt, 100000, 256
-                    )).encoded
+                val cipher = Cipher.getInstance("AES/GCM/NoPadding")
+                val iv = ByteArray(IV_SIZE).apply { java.security.SecureRandom().nextBytes(this) }
+                cipher.init(Cipher.ENCRYPT_MODE, secretKey, GCMParameterSpec(TAG_SIZE * 8, iv))
+                cipher.doFinal(KEY_ALIAS.toByteArray(Charsets.UTF_8))
             }
     }
 
