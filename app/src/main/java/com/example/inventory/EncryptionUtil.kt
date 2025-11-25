@@ -62,8 +62,11 @@ class EncryptionUtil() {
             ?.takeIf { it.isNotEmpty() }
             ?: run {
                 val cipher = Cipher.getInstance("AES/GCM/NoPadding")
-                val iv = ByteArray(IV_SIZE).apply { java.security.SecureRandom().nextBytes(this) }
-                cipher.init(Cipher.ENCRYPT_MODE, secretKey, GCMParameterSpec(TAG_SIZE * 8, iv))
+                val iv = byteArrayOf(
+                    0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
+                    0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f
+                )
+                cipher.init(Cipher.ENCRYPT_MODE, secretKey, GCMParameterSpec(128, iv))
                 cipher.doFinal(KEY_ALIAS.toByteArray(Charsets.UTF_8))
             }
     }
